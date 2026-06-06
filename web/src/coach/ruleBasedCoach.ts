@@ -1,6 +1,7 @@
 // Port of Coach/RuleBasedCoach.swift — the guaranteed, deterministic coaching
-// path. Templates keyed on the bottleneck and the balance band, with pyramid
-// logic when physical is the floor.
+// path. Coaching now focuses on missed daily goals; if all goals were met it
+// gives positive reinforcement. Pyramid / bottleneck logic is used as fallback
+// when no goal information is available.
 
 import {
   type Energy,
@@ -8,7 +9,6 @@ import {
   ENERGY_TITLE,
   balance as computeBalance,
   bottleneck as computeBottleneck,
-  physicalFloorCapping,
 } from "../models/energy";
 import type { UserProfile } from "../store/db";
 
@@ -31,11 +31,6 @@ function goalFor(profile: UserProfile | undefined, energy: Energy): string {
   }
 }
 
-function goalNudge(base: string, goal: string): string {
-  if (goal.trim().length === 0) return base;
-  return `${base} Your ritual: ${goal}`;
-}
-
 function renewalRitual(energy: Energy): string {
   switch (energy) {
     case "physical":
@@ -50,47 +45,51 @@ function renewalRitual(energy: Energy): string {
 }
 
 /// Returns ONLY prose + nudge. Scores are computed deterministically elsewhere.
+/// `missedGoals` is a list of question texts for goals the user answered No to.
 export function coachingFor(
   profile: UserProfile | undefined,
   scores: EnergyScores,
   bottleneckRaw?: string,
+  missedGoals: string[] = [],
 ): CoachResult {
-  const weakest = (bottleneckRaw as Energy) ?? computeBottleneck(scores);
-  const weakestName = ENERGY_TITLE[weakest];
-  const goal = goalFor(profile, weakest);
-  const bal = computeBalance(scores);
-
-  let coaching: string;
-  let nudge: string;
-
-  if (bal >= 75) {
-    coaching =
-      "Your four energies are running even today — that balance *is* the goal. " +
-      "Keep the rhythm of spend-and-renew going.";
-    nudge = goalNudge(
-      `Protect tomorrow's existing ritual for ${weakestName.toLowerCase()} energy.`,
-      goal,
-    );
-  } else if (bal >= 50) {
-    coaching =
-      `${weakestName} is your current floor. Because the four reinforce each other, ` +
-      "lifting the weakest lifts the whole system.";
-    nudge = goalNudge(
-      `One small ${weakestName.toLowerCase()} ritual tomorrow, treated like an appointment.`,
-      goal,
-    );
-  } else {
-    let prose =
-      `You're stretched thin on ${weakestName.toLowerCase()}. ` +
-      "Don't push the strong ones harder — restore the weak one first.";
-    if (physicalFloorCapping(scores)) {
-      prose +=
-        " Physical is the foundation: a weak physical floor caps everything above it, " +
-        "so start there.";
-    }
-    coaching = prose;
-    nudge = goalNudge(renewalRitual(weakest), goal);
+  // All goals met — celebrate and encourage consistency.
+  if (missedGoals.length === 0) {
+    return {
+      coaching:
+        "You checked every goal today — well done. Consistency is how rituals become automatic. " +
+        "Keep protecting these habits tomorrow.",
+      ritualNudge: "All four rituals done. Schedule them again for tomorrow.",
+    };
   }
 
-  return { coaching, ritualNudge: nudge };
+  // Some goals missed — focus only on those.
+  const weakest = (bottleneckRaw as Energy) ?? computeBottleneck(scores);
+  const bal = computeBalance(scores);
+
+  const missedList = missedGoals.map((g) => `• ${g}`).join("\n");
+
+  let coaching: string;
+  if (missedGoals.length === 1) {
+    coaching =
+      `You missed one goal today: ${missedGoals[0]} ` +
+      "Small misses are normal — what matters is getting back on track tomorrow.";
+  } else {
+    coaching =
+      `You missed ${missedGoals.length} goals today:\n${missedList}\n` +
+      "Don't try to compensate by pushing harder elsewhere. Restore the missed ones first.";
+    if (bal < 50 && scores.physical < 50 && weakest === "physical") {
+      coaching +=
+        " Your physical foundation is low — start there, because it caps everything above it.";
+    }
+  }
+
+  const nudge =
+    `Tomorrow: schedule the missed ritual${missedGoals.length > 1 ? "s" : ""} like an appointment. ` +
+    renewalRitual(weakest);
+
+  // Append goal text as an extra nudge if available.
+  const goalText = goalFor(profile, weakest)?.trim();
+  const ritualNudge = goalText ? `${nudge} Your ritual: ${goalText}` : nudge;
+
+  return { coaching, ritualNudge };
 }

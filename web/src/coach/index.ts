@@ -16,18 +16,19 @@ export async function coachFor(
   profile: UserProfile | undefined,
   scores: EnergyScores,
   bottleneckRaw?: string,
+  missedGoals: string[] = [],
 ): Promise<ResolvedCoaching> {
   // Use the AI coach only when enabled AND the model is already loaded (loaded
   // explicitly from Settings) — so a check-in never blocks on a model download.
   if (profile?.coachEnabled && aiCoach.supported && aiCoach.isReady) {
     try {
-      const result = await aiCoach.coaching(profile, scores, bottleneckRaw);
+      const result = await aiCoach.coaching(profile, scores, bottleneckRaw, missedGoals);
       return { ...result, source: "ai" };
     } catch {
       // fall through to the guaranteed rule-based path
     }
   }
-  return { ...coachingFor(profile, scores, bottleneckRaw), source: "rule" };
+  return { ...coachingFor(profile, scores, bottleneckRaw, missedGoals), source: "rule" };
 }
 
 export { coachingFor };

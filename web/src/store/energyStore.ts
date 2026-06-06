@@ -68,6 +68,17 @@ export async function todaysEntry(): Promise<EnergyEntry | undefined> {
   return db.entries.get(startOfToday());
 }
 
+/// Returns the most recent entry strictly before today (used as the base for
+/// cumulative ±1 scoring). Returns undefined when there is no prior history.
+export async function previousEntry(): Promise<EnergyEntry | undefined> {
+  const today = startOfToday();
+  return db.entries
+    .where("day")
+    .below(today)
+    .reverse()
+    .first();
+}
+
 export async function entryOn(day: number): Promise<EnergyEntry | undefined> {
   return db.entries.get(startOfDay(day));
 }

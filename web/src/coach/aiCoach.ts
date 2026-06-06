@@ -132,10 +132,11 @@ class AICoachManager {
     profile: UserProfile | undefined,
     scores: EnergyScores,
     bottleneckRaw?: string,
+    missedGoals: string[] = [],
   ): Promise<CoachResult> {
     const engine = await this.ensureLoaded();
-    const fallback = coachingFor(profile, scores, bottleneckRaw);
-    const messages = buildMessages(profile, scores, bottleneckRaw);
+    const fallback = coachingFor(profile, scores, bottleneckRaw, missedGoals);
+    const messages = buildMessages(profile, scores, bottleneckRaw, missedGoals);
 
     const reply = await engine.chat.completions.create({
       messages,
@@ -224,26 +225,28 @@ function buildMessages(
   profile: UserProfile | undefined,
   scores: EnergyScores,
   bottleneckRaw?: string,
+  missedGoals: string[] = [],
 ): { role: "system" | "user"; content: string }[] {
   const weakest = (bottleneckRaw as Energy) ?? computeBottleneck(scores);
   const bal = computeBalance(scores);
 
   const system =
     "You are a warm, concise energy-management coach grounded in Loehr & Schwartz's " +
-    "\"The Power of Full Engagement\". The four energies form a pyramid: physical (foundation), " +
-    "emotional, mental, spiritual (apex). Balance across the four is the goal, and you lift the " +
-    "system by restoring its weakest energy first — never by pushing the strong ones harder. " +
-    "Write 2–3 supportive sentences in second person. Do NOT mention raw numbers or scores, do " +
-    "not use lists, and do not invent facts beyond what you're given. Keep it human and calm.";
+    "\"The Power of Full Engagement\". The user has just completed a Yes/No daily goal check-in. " +
+    "Your job is to comment ONLY on the goals they MISSED today (if any), and suggest one " +
+    "concrete, actionable next step for each missed goal. If all goals were met, give a short " +
+    "positive reinforcement. Write 2–3 sentences in second person. Do NOT mention raw numbers " +
+    "or scores, do not use lists, and do not invent facts beyond what you're given. Keep it human and calm.";
 
   const purpose = profile?.purpose?.trim();
+  const missedSection =
+    missedGoals.length === 0
+      ? "The user completed ALL their goals today."
+      : `The user missed these goals today: ${missedGoals.map((g) => `"${g}"`).join(", ")}.`;
+
   const user =
-    `Today's read — balance is ${bal} out of 100. The weakest (floor) energy is ` +
-    `${ENERGY_TITLE[weakest]}. Physical=${scores.physical}, Emotional=${scores.emotional}, ` +
-    `Mental=${scores.mental}, Spiritual=${scores.spiritual}, Recovery=${scores.recovery}.` +
-    (scores.physical < 50 && weakest === "physical"
-      ? " Note: the physical foundation is low, which caps the energies above it."
-      : "") +
+    `${missedSection} ` +
+    `Today's energy balance: ${bal}/100. Weakest energy: ${ENERGY_TITLE[weakest]}.` +
     (purpose ? ` The person's stated purpose: "${purpose}".` : "") +
     " Write their coaching message for today.";
 

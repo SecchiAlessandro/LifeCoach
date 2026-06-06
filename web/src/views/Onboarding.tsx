@@ -12,10 +12,10 @@ import { Card, PrimaryButton } from "../components/ui";
 const TOTAL_STEPS = 3;
 
 const PLACEHOLDERS: Record<Energy, string> = {
-  physical: "e.g. lights out by 11pm; a 15-min morning walk",
-  emotional: "e.g. one gratitude note before bed",
-  mental: "e.g. one phone-free 90-min focus block",
-  spiritual: "e.g. 5 quiet minutes on what matters",
+  physical: "e.g. 50 push-ups, or jog 20 min",
+  emotional: "e.g. call a friend, or write 3 gratitudes",
+  mental: "e.g. 90-min deep work block, no phone",
+  spiritual: "e.g. 5 min reflection on my purpose",
 };
 
 export function Onboarding({ onComplete }: { onComplete: () => void }) {
@@ -66,8 +66,8 @@ export function Onboarding({ onComplete }: { onComplete: () => void }) {
 
         {step === 1 && (
           <StepScaffold
-            title="One ritual each"
-            subtitle="Progress comes from specific automatic routines, not willpower. Name one small ritual per energy."
+            title="One daily habit each"
+            subtitle="Each habit becomes a Yes/No check-in question every day. Be specific and actionable — e.g. '50 push-ups', 'jog 20 min', 'hike with GF'."
           >
             <div className="flex flex-col gap-3.5">
               {ENERGIES.map((energy) => (

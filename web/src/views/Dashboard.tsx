@@ -11,7 +11,7 @@ import {
   type EnergyScores,
 } from "../models/energy";
 import { energyHex } from "../theme/theme";
-import { useEntriesInRange, useProfile, useTodaysEntry } from "../store/useStore";
+import { useEntriesInRange, useLatestEntry, useProfile, useTodaysEntry } from "../store/useStore";
 import { EnergyWheel } from "../components/EnergyWheel";
 import { Sparkline } from "../components/Sparkline";
 import { Card, PillLabel, PrimaryButton } from "../components/ui";
@@ -22,10 +22,13 @@ const ZERO: EnergyScores = { physical: 0, emotional: 0, mental: 0, spiritual: 0,
 
 export function Dashboard() {
   const today = useTodaysEntry();
+  const latest = useLatestEntry();
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [selected, setSelected] = useState<Energy | null>(null);
 
-  const scores: EnergyScores = today ?? ZERO;
+  // Show today's entry if available; otherwise fall back to the most recent
+  // entry so the wheel reflects the last known running scores (freeze behaviour).
+  const scores: EnergyScores = today ?? latest ?? ZERO;
   const bal = balance(scores);
   const floor = bottleneck(scores);
 

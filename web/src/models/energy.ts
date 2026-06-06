@@ -94,6 +94,26 @@ export function scoresFromRaw(rawAnswers: Record<string, number>): EnergyScores 
   };
 }
 
+/// Computes cumulative ±1 scores based on the previous day's scores.
+/// Yes (rawAnswers["goal-{energy}"] === 10) → +1, No → −1, clamped to [0, 100].
+/// When there is no previous entry (first ever check-in), each energy starts at 100.
+export function cumulativeScores(
+  rawAnswers: Record<string, number>,
+  previousScores?: { physical: number; emotional: number; mental: number; spiritual: number },
+): EnergyScores {
+  const delta = (energy: Energy): number => (rawAnswers[`goal-${energy}`] === 10 ? 1 : -1);
+  const base = (energy: Energy): number => previousScores?.[energy] ?? 100;
+  const clamp = (v: number): number => Math.min(100, Math.max(0, v));
+
+  return {
+    physical: clamp(base("physical") + delta("physical")),
+    emotional: clamp(base("emotional") + delta("emotional")),
+    mental: clamp(base("mental") + delta("mental")),
+    spiritual: clamp(base("spiritual") + delta("spiritual")),
+    recovery: 0,
+  };
+}
+
 // MARK: - Questions
 
 export interface CheckInQuestion {
@@ -176,7 +196,7 @@ export const QUESTION_BANK: CheckInQuestion[] = [
   },
 ];
 
-/// Picks a daily set: one per energy + one recovery, weighting toward the
+/// Picks a daily set: one per energy (no recovery), weighting toward the
 /// weakest energy from recent entries (surfacing its second question to vary).
 export function dailySet(recent: { bottleneck: string }[]): CheckInQuestion[] {
   const weakest = recent.length > 0 ? recent[0].bottleneck : undefined;
@@ -193,7 +213,33 @@ export function dailySet(recent: { bottleneck: string }[]): CheckInQuestion[] {
     }
   }
 
-  const recovery = QUESTION_BANK.find((q) => q.energy === "recovery");
-  if (recovery) picked.push(recovery);
   return picked;
+}
+
+/// Generates 4 Yes/No check-in questions directly from the user's saved ritual
+/// goals (one per energy). Falls back to a generic phrasing when a goal is empty.
+export function goalQuestions(profile: {
+  goalPhysical: string;
+  goalEmotional: string;
+  goalMental: string;
+  goalSpiritual: string;
+} | undefined): CheckInQuestion[] {
+  function makeQuestion(energy: Energy, goal: string): CheckInQuestion {
+    const goalText = goal.trim();
+    const text = goalText
+      ? `Did you ${goalText} today?`
+      : `Did you do your ${ENERGY_TITLE[energy].toLowerCase()} ritual today?`;
+    return { id: `goal-${energy}`, energy, text, lowLabel: "", highLabel: "" };
+  }
+
+  if (!profile) {
+    return ENERGIES.map((e) => makeQuestion(e, ""));
+  }
+
+  return [
+    makeQuestion("physical", profile.goalPhysical),
+    makeQuestion("emotional", profile.goalEmotional),
+    makeQuestion("mental", profile.goalMental),
+    makeQuestion("spiritual", profile.goalSpiritual),
+  ];
 }

@@ -23,6 +23,8 @@ export default function App() {
   const [seeded, setSeeded] = useState(false);
   const [tab, setTab] = useState<Tab>("today");
 
+  const todayShort = new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
   // Seed ~21 days of mock data on first load (like RootView), so the wheel and
   // charts have something to show.
   useEffect(() => {
@@ -57,6 +59,9 @@ export default function App() {
           >
             <span className="text-[18px] leading-none">{t.icon}</span>
             {t.label}
+            {t.id === "today" && (
+              <span className="text-[10px] font-normal opacity-70">{todayShort}</span>
+            )}
           </button>
         ))}
       </nav>

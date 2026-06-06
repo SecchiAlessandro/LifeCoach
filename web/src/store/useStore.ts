@@ -17,6 +17,11 @@ export function useTodaysEntry(): EnergyEntry | undefined {
   return useLiveQuery(() => db.entries.get(startOfToday()));
 }
 
+/** The most recent entry regardless of day — used to show last known scores. */
+export function useLatestEntry(): EnergyEntry | undefined {
+  return useLiveQuery(() => db.entries.orderBy("day").last());
+}
+
 /** Ascending by day, within the last `days` days (inclusive of today). */
 export function useEntriesInRange(days: number): EnergyEntry[] | undefined {
   return useLiveQuery(() => {
