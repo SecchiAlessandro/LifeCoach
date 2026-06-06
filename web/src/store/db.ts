@@ -59,6 +59,21 @@ class FullEngagementDB extends Dexie {
       entries: "day, createdAt",
       rituals: "++id, createdAt, energy",
     });
+    // v2: purge entries produced by the old slider-based scoring system.
+    this.version(2).stores({
+      profiles: "++id, createdAt",
+      entries: "day, createdAt",
+      rituals: "++id, createdAt, energy",
+    });
+    // v3: clear ALL pre-existing entries (mock-seeded or old-system data) so
+    // the cumulative ±1 system always starts fresh from 100.
+    this.version(3)
+      .stores({
+        profiles: "++id, createdAt",
+        entries: "day, createdAt",
+        rituals: "++id, createdAt, energy",
+      })
+      .upgrade((tx) => tx.table("entries").clear());
   }
 }
 

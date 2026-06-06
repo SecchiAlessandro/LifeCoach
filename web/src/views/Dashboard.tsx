@@ -4,7 +4,6 @@
 import { useState } from "react";
 import {
   bottleneck,
-  overallEnergy,
   ENERGY_BLURB,
   ENERGY_TITLE,
   type Energy,
@@ -18,7 +17,7 @@ import { Card, PillLabel, PrimaryButton } from "../components/ui";
 import { Modal } from "../components/Modal";
 import { CheckIn } from "./CheckIn";
 
-const ZERO: EnergyScores = { physical: 0, emotional: 0, mental: 0, spiritual: 0, recovery: 0 };
+const DEFAULT_SCORES: EnergyScores = { physical: 100, emotional: 100, mental: 100, spiritual: 100, recovery: 0 };
 
 export function Dashboard() {
   const today = useTodaysEntry();
@@ -28,16 +27,8 @@ export function Dashboard() {
 
   // Show today's entry if available; otherwise fall back to the most recent
   // entry so the wheel reflects the last known running scores (freeze behaviour).
-  const scores: EnergyScores = today ?? latest ?? ZERO;
-  const overall = overallEnergy(scores);
+  const scores: EnergyScores = today ?? latest ?? DEFAULT_SCORES;
   const floor = bottleneck(scores);
-
-  const balanceRead = (() => {
-    if (!today) return "No check-in yet today — your wheel is waiting.";
-    if (overall >= 75) return "Your overall energy is high. Keep the momentum.";
-    if (overall >= 50) return `Overall energy at ${overall}. ${ENERGY_TITLE[floor]} is your current floor — lift the weakest.`;
-    return `Low overall energy. Restore ${ENERGY_TITLE[floor].toLowerCase()} first.`;
-  })();
 
   const todayLabel = new Date().toLocaleDateString(undefined, {
     weekday: "long",
@@ -54,11 +45,6 @@ export function Dashboard() {
 
       <EnergyWheel scores={scores} onSelect={setSelected} />
 
-      <div className="flex flex-col items-center gap-1.5">
-        <div className="font-display text-[64px] font-bold leading-none text-accent">{overall}</div>
-        <p className="text-center text-[15px] text-secondary">{balanceRead}</p>
-      </div>
-
       {today && (
         <Card>
           <div className="flex flex-col gap-3">
@@ -73,15 +59,6 @@ export function Dashboard() {
               </span>
             </div>
             <p className="text-[16px] text-primary">{today.coaching}</p>
-            {today.ritualNudge && (
-              <>
-                <hr style={{ borderColor: "var(--hairline)" }} />
-                <div className="flex items-start gap-2 text-secondary">
-                  <span>☑️</span>
-                  <span className="text-[14px]">{today.ritualNudge}</span>
-                </div>
-              </>
-            )}
           </div>
         </Card>
       )}

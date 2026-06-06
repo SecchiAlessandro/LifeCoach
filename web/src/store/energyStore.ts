@@ -1,4 +1,4 @@
-// Port of Store/EnergyStore.swift — upsert-today, queries, mock seeding, export.
+// Port of Store/EnergyStore.swift — upsert-today, queries, export.
 // Async because IndexedDB is async; views consume these via hooks (useStore.ts).
 
 import {
@@ -14,7 +14,6 @@ import {
   bottleneck,
   type EnergyScores,
 } from "../models/energy";
-import { coachingFor } from "../coach/ruleBasedCoach";
 
 // MARK: - Profile
 
@@ -118,49 +117,6 @@ export async function upsert(input: UpsertInput): Promise<EnergyEntry> {
 
 export async function deleteEntry(day: number): Promise<void> {
   await db.entries.delete(startOfDay(day));
-}
-
-// MARK: - Mock seeding (Milestone 1/2)
-
-/// Seeds N days of plausible mock entries if the store is empty.
-export async function seedMockDataIfEmpty(days = 21): Promise<void> {
-  if ((await db.entries.count()) > 0) return;
-
-  const rows: EnergyEntry[] = [];
-  for (let offset = days - 1; offset >= 0; offset--) {
-    const d = new Date();
-    d.setDate(d.getDate() - offset);
-    const day = startOfDay(d);
-    const phase = days - offset;
-
-    const wave = (base: number, amp: number, shift: number): number => {
-      const v = base + amp * Math.sin((phase + shift) / 3.0);
-      return Math.min(100, Math.max(0, Math.round(v)));
-    };
-
-    const scores: EnergyScores = {
-      physical: wave(62, 18, 0),
-      emotional: wave(58, 22, 1.5),
-      mental: wave(66, 16, 3),
-      spiritual: wave(54, 20, 4.5),
-      recovery: wave(60, 25, 2),
-    };
-    const result = coachingFor(undefined, scores, bottleneck(scores));
-    rows.push({
-      day,
-      physical: scores.physical,
-      emotional: scores.emotional,
-      mental: scores.mental,
-      spiritual: scores.spiritual,
-      recovery: scores.recovery,
-      bottleneck: bottleneck(scores),
-      coaching: result.coaching,
-      ritualNudge: result.ritualNudge,
-      rawAnswers: {},
-      createdAt: day,
-    });
-  }
-  await db.entries.bulkPut(rows);
 }
 
 // MARK: - Export (Milestone 4)
