@@ -7,6 +7,8 @@ import {
   bottleneck,
   questionEnergy,
   type CheckInQuestion,
+  type Energy,
+  ENERGY_TITLE,
 } from "../models/energy";
 import { energyHex } from "../theme/theme";
 import { coachFor } from "../coach";
@@ -50,10 +52,13 @@ export function CheckIn({ onClose }: { onClose: () => void }) {
     const rawAnswers: Record<string, number> = {};
     for (const [id, checked] of Object.entries(answers)) rawAnswers[id] = checked ? 10 : 0;
 
-    // Identify missed goals (questions the user answered No to)
+    // Identify missed goals as short energy labels (e.g. "Mental") — not the full question text
     const missedGoals = questions
       .filter((q) => !answers[q.id])
-      .map((q) => q.text);
+      .map((q) => {
+        const energy = questionEnergy(q);
+        return energy ? ENERGY_TITLE[energy as Energy] : q.energy;
+      });
 
     // Compute cumulative ±1 scores from the previous day's baseline
     const [profile, prevEntry] = await Promise.all([currentProfile(), previousEntry()]);

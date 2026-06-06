@@ -66,20 +66,22 @@ export function coachingFor(
   const weakest = (bottleneckRaw as Energy) ?? computeBottleneck(scores);
   const bal = computeBalance(scores);
 
-  const missedList = missedGoals.map((g) => `• ${g}`).join("\n");
+  const joinLabels = (labels: string[]): string => {
+    if (labels.length === 1) return labels[0];
+    return labels.slice(0, -1).join(", ") + " and " + labels[labels.length - 1];
+  };
 
   let coaching: string;
   if (missedGoals.length === 1) {
     coaching =
-      `You missed one goal today: ${missedGoals[0]} ` +
+      `You missed your ${missedGoals[0]} ritual today. ` +
       "Small misses are normal — what matters is getting back on track tomorrow.";
   } else {
     coaching =
-      `You missed ${missedGoals.length} goals today:\n${missedList}\n` +
-      "Don't try to compensate by pushing harder elsewhere. Restore the missed ones first.";
+      `You missed ${missedGoals.length} rituals today: ${joinLabels(missedGoals)}. ` +
+      "Restore those first before pushing harder elsewhere.";
     if (bal < 50 && scores.physical < 50 && weakest === "physical") {
-      coaching +=
-        " Your physical foundation is low — start there, because it caps everything above it.";
+      coaching += " Your physical foundation is low — start there, because it caps everything above it.";
     }
   }
 

@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import {
-  balance,
   bottleneck,
+  overallEnergy,
   ENERGY_BLURB,
   ENERGY_TITLE,
   type Energy,
@@ -29,14 +29,14 @@ export function Dashboard() {
   // Show today's entry if available; otherwise fall back to the most recent
   // entry so the wheel reflects the last known running scores (freeze behaviour).
   const scores: EnergyScores = today ?? latest ?? ZERO;
-  const bal = balance(scores);
+  const overall = overallEnergy(scores);
   const floor = bottleneck(scores);
 
   const balanceRead = (() => {
     if (!today) return "No check-in yet today — your wheel is waiting.";
-    if (bal >= 75) return "Your energies are running even. That balance is the goal.";
-    if (bal >= 50) return `${ENERGY_TITLE[floor]} is your current floor — lift the weakest.`;
-    return `You're out of balance. Restore ${ENERGY_TITLE[floor].toLowerCase()} first.`;
+    if (overall >= 75) return "Your overall energy is high. Keep the momentum.";
+    if (overall >= 50) return `Overall energy at ${overall}. ${ENERGY_TITLE[floor]} is your current floor — lift the weakest.`;
+    return `Low overall energy. Restore ${ENERGY_TITLE[floor].toLowerCase()} first.`;
   })();
 
   const todayLabel = new Date().toLocaleDateString(undefined, {
@@ -55,7 +55,7 @@ export function Dashboard() {
       <EnergyWheel scores={scores} onSelect={setSelected} />
 
       <div className="flex flex-col items-center gap-1.5">
-        <div className="font-display text-[64px] font-bold leading-none text-accent">{bal}</div>
+        <div className="font-display text-[64px] font-bold leading-none text-accent">{overall}</div>
         <p className="text-center text-[15px] text-secondary">{balanceRead}</p>
       </div>
 

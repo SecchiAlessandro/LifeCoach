@@ -54,6 +54,12 @@ export function balance(scores: EnergyScores): number {
   return Math.max(0, 100 - (hi - lo));
 }
 
+/// Arithmetic mean of the four energies (0…100).
+export function overallEnergy(scores: EnergyScores): number {
+  const values = [scores.physical, scores.emotional, scores.mental, scores.spiritual];
+  return Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+}
+
 /// The weakest energy — the system's current floor. Ties break toward the lower
 /// pyramid level (the foundation matters more).
 export function bottleneck(scores: EnergyScores): Energy {
